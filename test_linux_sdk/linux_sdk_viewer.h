@@ -28,8 +28,8 @@
 #define RASPBERRY_PI_ONLY
 
 // Linux SDK 헤더들
-#include "v4l2uvc.h"
-#include "h264_xu_ctrls.h"
+#include "sdk_deps/OSD-Linux_H264_AP_0724/v4l2uvc.h"
+#include "sdk_deps/OSD-Linux_H264_AP_0724/h264_xu_ctrls.h"
 
 // 설정 상수
 #define MAX_DEVICES 10

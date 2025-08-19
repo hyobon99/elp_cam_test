@@ -10,8 +10,8 @@ CXXFLAGS = $(CFLAGS) -std=c++11
 # 라이브러리
 LIBS = -lpthread -lX11 -lm
 
-# Linux SDK 헤더 경로
-SDK_PATH = ../LINUX\ 开发包-2/ELP\ Linux\ SDK最新/Linux
+# Linux SDK 헤더 경로 (로컬)
+SDK_PATH = ./sdk_deps
 SDK_INCLUDE = -I$(SDK_PATH)/OSD-Linux_H264_AP_0724
 
 # 소스 파일들
@@ -82,6 +82,12 @@ check-sdk:
 	@if [ -d "$(SDK_PATH)" ]; then \
 		echo "✓ SDK 경로 발견: $(SDK_PATH)"; \
 		ls -la "$(SDK_PATH)"; \
+		echo ""; \
+		echo "H.264 SDK 파일들:"; \
+		ls -la "$(SDK_PATH)/OSD-Linux_H264_AP_0724/"; \
+		echo ""; \
+		echo "모션 감지 SDK 파일들:"; \
+		ls -la "$(SDK_PATH)/UCAM-Motion_detection/"; \
 	else \
 		echo "✗ SDK 경로 없음: $(SDK_PATH)"; \
 		echo "SDK_PATH 변수를 올바른 경로로 수정하세요"; \

@@ -11,6 +11,32 @@ ELP H.264 USB Camera SDK를 기반으로 한 **라즈베리파이 전용** 전�
 - ❌ **macOS** (지원 안됨)
 - ❌ **일반 Linux** (지원 안됨)
 
+## 📦 **SDK 의존성**
+
+이 프로젝트는 **로컬 SDK 의존성**을 포함하고 있습니다:
+
+```
+sdk_deps/
+├── OSD-Linux_H264_AP_0724/          # H.264 인코딩 및 V4L2 제어
+│   ├── h264_xu_ctrls.c/h            # H.264 XU 컨트롤
+│   ├── v4l2uvc.c/h                  # V4L2 UVC 드라이버
+│   ├── nalu.c/h                     # NAL 유닛 처리
+│   ├── cap_desc.c/h                 # 카메라 디스크립터
+│   ├── cap_desc_parser.c/h          # 디스크립터 파서
+│   └── H264_UVC_TestAP.c            # 테스트 애플리케이션
+└── UCAM-Motion_detection/           # 모션 감지 기능
+    ├── rervision_xu_ctrls.c/h       # 모션 감지 XU 컨트롤
+    ├── v4l2uvc.c/h                  # V4L2 UVC 드라이버
+    ├── main.c                       # 모션 감지 메인
+    └── uvcvideo.h                   # UVC 비디오 헤더
+```
+
+### **SDK 기능**
+- **H.264 하드웨어 인코딩**: 카메라 내장 H.264 인코더 제어
+- **XU (Extension Unit) 제어**: USB Extension Unit을 통한 고급 기능
+- **모션 감지**: 하드웨어 모션 감지 지원
+- **V4L2 네이티브**: Linux Video4Linux2 API 직접 사용
+
 ## 🚀 **빠른 시작**
 
 ### 1. 라즈베리파이에서 의존성 설치
@@ -19,12 +45,17 @@ sudo apt update
 sudo apt install build-essential libx11-dev libxext-dev
 ```
 
-### 2. 빌드
+### 2. SDK 의존성 확인
+```bash
+make -f Makefile_raspberry_pi check-sdk
+```
+
+### 3. 빌드
 ```bash
 make -f Makefile_raspberry_pi all
 ```
 
-### 3. 실행
+### 4. 실행
 ```bash
 ./raspberry_pi_viewer -d /dev/video0 -w 1280 -h 720 -f 30
 ```
@@ -52,6 +83,9 @@ make -f Makefile_raspberry_pi all
 # 의존성 설치
 sudo apt update
 sudo apt install build-essential libx11-dev libxext-dev
+
+# SDK 의존성 확인
+make -f Makefile_raspberry_pi check-sdk
 
 # 빌드
 make -f Makefile_raspberry_pi all
@@ -195,18 +229,19 @@ RaspberryPiViewer
 - **Makefile**: 라즈베리파이 전용 최적화
 - **ARM 최적화**: ARM 아키텍처 최적화 플래그
 - **조건부 컴파일**: 라즈베리파이 전용 기능 활성화
+- **로컬 SDK**: 포함된 SDK 의존성 사용
 
 ### 의존성
 - **pthread**: 멀티스레딩 지원
 - **X11**: GUI 디스플레이
-- **Linux SDK**: ELP H.264 USB Camera SDK
+- **Linux SDK**: ELP H.264 USB Camera SDK (로컬 포함)
 
 ## ⚠️ **중요 사항**
 
 ### 플랫폼 제한
 - **라즈베리파이에서만 작동**: macOS나 일반 Linux에서는 빌드되지 않음
 - **ARM 아키텍처 전용**: x86_64에서는 작동하지 않음
-- **Linux SDK 의존**: ELP Linux SDK가 필요함
+- **Linux SDK 의존**: ELP Linux SDK가 필요함 (로컬 포함)
 
 ### 권장 하드웨어
 - **Raspberry Pi 4**: 권장 (ARM64, 4GB RAM 이상)
@@ -227,3 +262,4 @@ RaspberryPiViewer
 - 이 뷰어는 **라즈베리파이에서만 작동**합니다.
 - ELP H.264 USB 카메라와 함께 사용하면 최고의 성능을 얻을 수 있습니다.
 - 다른 플랫폼에서는 빌드되지 않습니다.
+- **SDK 의존성은 로컬에 포함**되어 있어 별도 다운로드가 필요하지 않습니다.
