@@ -22,12 +22,21 @@ public:
 
     bool openCamera(int device_id = 0) {
         // reference.cpp와 동일한 방식으로 카메라 열기
+        std::cout << "카메라 장치 " << device_id << " 열기 시도 중..." << std::endl;
         cap.open(device_id);
         if (!cap.isOpened()) {
             std::cout << "Error: Could not open camera device " << device_id << std::endl;
             return false;
         }
         std::cout << "카메라 장치 " << device_id << " 성공적으로 열림!" << std::endl;
+        
+        // 카메라 정보 출력
+        std::cout << "카메라 정보:" << std::endl;
+        std::cout << "  Width: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << std::endl;
+        std::cout << "  Height: " << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
+        std::cout << "  FPS: " << cap.get(cv::CAP_PROP_FPS) << std::endl;
+        std::cout << "  Backend: " << cap.get(cv::CAP_PROP_BACKEND) << std::endl;
+        
         return true;
     }
 
@@ -65,6 +74,14 @@ public:
 
     bool readFrame(cv::Mat& frame) {
         cap >> frame;
+        if (frame.empty()) {
+            std::cout << "프레임 읽기 실패 - 카메라 상태 확인 중..." << std::endl;
+            std::cout << "  카메라 열림 상태: " << (cap.isOpened() ? "열림" : "닫힘") << std::endl;
+            if (cap.isOpened()) {
+                std::cout << "  현재 해상도: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
+                std::cout << "  현재 FPS: " << cap.get(cv::CAP_PROP_FPS) << std::endl;
+            }
+        }
         return !frame.empty();
     }
 
