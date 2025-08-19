@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "sdk_definitions.h"
 
 // 전역 변수 정의
