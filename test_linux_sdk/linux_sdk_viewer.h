@@ -9,44 +9,27 @@
 #include <sys/file.h>
 #include <string.h>
 #include <pthread.h>
+#include <linux/videodev2.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xos.h>
+#include <X11/Xatom.h>
 #include <math.h>
 
-// 플랫폼 감지
-#ifdef __APPLE__
-    #define PLATFORM_MACOS
-    #include <sys/socket.h>
-    #include <netinet/in.h>
-    #include <arpa/inet.h>
-    // macOS에서는 V4L2 대신 AVFoundation 사용 (별도 구현 필요)
-#elif defined(__linux__)
-    #define PLATFORM_LINUX
-    #include <linux/videodev2.h>
-    #include <sys/ioctl.h>
-    #include <sys/mman.h>
-    #include <X11/Xlib.h>
-    #include <X11/Xutil.h>
-    #include <X11/Xos.h>
-    #include <X11/Xatom.h>
-    
-    // 라즈베리파이 감지
-    #ifdef __arm__ || defined(__aarch64__)
-        #define PLATFORM_RASPBERRY_PI
-        // 라즈베리파이 특화 설정
-    #endif
-#else
-    #error "지원되지 않는 플랫폼입니다. Linux 또는 macOS만 지원됩니다."
-#endif
+// 라즈베리파이 전용 설정
+#define PLATFORM_RASPBERRY_PI
+#define RASPBERRY_PI_ONLY
 
-// Linux SDK 헤더들 (Linux에서만)
-#ifdef PLATFORM_LINUX
-    #include "v4l2uvc.h"
-    #include "h264_xu_ctrls.h"
-#endif
+// Linux SDK 헤더들
+#include "v4l2uvc.h"
+#include "h264_xu_ctrls.h"
 
 // 설정 상수
 #define MAX_DEVICES 10
@@ -82,25 +65,10 @@ typedef struct {
     int bitrate;
 } CameraConfig;
 
-// Linux SDK 뷰어 클래스
-class LinuxSDKViewer {
+// 라즈베리파이 전용 뷰어 클래스
+class RaspberryPiViewer {
 private:
-#ifdef PLATFORM_LINUX
     struct vdIn *vd;
-    // X11 디스플레이 관련
-    Display *display;
-    Window window;
-    GC gc;
-    XImage *ximage;
-#endif
-
-#ifdef PLATFORM_MACOS
-    // macOS용 멤버 변수들 (AVFoundation 기반)
-    void *av_capture_session;
-    void *av_capture_device;
-    void *av_capture_output;
-#endif
-
     FPSController fps_ctrl;
     CameraConfig config;
     int running;
@@ -108,17 +76,21 @@ private:
     pthread_t display_thread;
     pthread_mutex_t frame_mutex;
     
+    // X11 디스플레이 관련
+    Display *display;
+    Window window;
+    GC gc;
+    XImage *ximage;
+    
     // 프레임 버퍼
     unsigned char *frame_buffer;
     int frame_buffer_size;
     int frame_width;
     int frame_height;
     
-    // H.264 관련 (Linux에서만)
-#ifdef PLATFORM_LINUX
+    // H.264 관련
     struct H264Format *h264_fmt;
     int h264_decoder_initialized;
-#endif
     
     // 통계 정보
     struct {
@@ -130,17 +102,14 @@ private:
     } stats;
 
 public:
-    LinuxSDKViewer();
-    ~LinuxSDKViewer();
+    RaspberryPiViewer();
+    ~RaspberryPiViewer();
     
     // 초기화 및 설정
     int initialize(const CameraConfig *cfg);
     int openCamera(const char *device);
     int setFormat(int width, int height, int fps);
-    
-#ifdef PLATFORM_LINUX
     int setH264Parameters(int bitrate, int quality, int keyframe_interval);
-#endif
     
     // FPS 제어
     int setTargetFPS(int fps);
@@ -155,27 +124,14 @@ public:
     
     // 프레임 처리
     int captureFrame();
-    
-#ifdef PLATFORM_LINUX
     int decodeH264Frame(unsigned char *data, int size);
-#endif
-    
     int displayFrame();
     
     // GUI 관련
-#ifdef PLATFORM_LINUX
     int initializeX11Display();
     int createWindow(int width, int height);
     void updateDisplay();
     void drawOverlay();
-#endif
-
-#ifdef PLATFORM_MACOS
-    int initializeMacOSDisplay();
-    int createMacOSWindow(int width, int height);
-    void updateMacOSDisplay();
-    void drawMacOSOverlay();
-#endif
     
     // 통계 및 모니터링
     void updateStatistics();
@@ -194,27 +150,16 @@ public:
 };
 
 // 전역 변수
-extern LinuxSDKViewer *g_viewer;
+extern RaspberryPiViewer *g_viewer;
 extern volatile int g_running;
 
 // 유틸리티 함수들
-#ifdef PLATFORM_LINUX
 int xioctl(int fd, int request, void *arg);
-#endif
-
 int errnoexit(const char *s);
 void printUsage(const char *program_name);
 int parseCommandLine(int argc, char **argv, CameraConfig *config);
 
-// 플랫폼별 매크로
-#ifdef PLATFORM_MACOS
-    #define CLEAR(x) memset(&(x), 0, sizeof(x))
-    #define V4L2_PIX_FMT_H264 0x34363248  // 'H264'
-    #define V4L2_PIX_FMT_MJPEG 0x47504A4D // 'MJPG'
-#endif
-
-#ifdef PLATFORM_LINUX
-    #define CLEAR(x) memset(&(x), 0, sizeof(x))
-#endif
+// 라즈베리파이 전용 매크로
+#define CLEAR(x) memset(&(x), 0, sizeof(x))
 
 #endif // LINUX_SDK_VIEWER_H

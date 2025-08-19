@@ -2,7 +2,7 @@
 #include <signal.h>
 
 // 전역 변수
-LinuxSDKViewer *g_viewer = NULL;
+RaspberryPiViewer *g_viewer = NULL;
 volatile int g_running = 1;
 
 // 시그널 핸들러
@@ -15,9 +15,10 @@ void signalHandler(int sig) {
 int main(int argc, char **argv) {
     CameraConfig config;
     
-    printf("=== Linux SDK Professional Viewer ===\n");
+    printf("=== Raspberry Pi SDK Professional Viewer ===\n");
     printf("ELP H.264 USB Camera SDK 기반\n");
-    printf("=====================================\n");
+    printf("플랫폼: Raspberry Pi 전용\n");
+    printf("============================================\n");
     
     // 명령행 파싱
     if (parseCommandLine(argc, argv, &config) < 0) {
@@ -28,8 +29,8 @@ int main(int argc, char **argv) {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     
-    // Linux SDK 뷰어 생성
-    g_viewer = new LinuxSDKViewer();
+    // 라즈베리파이 SDK 뷰어 생성
+    g_viewer = new RaspberryPiViewer();
     if (!g_viewer) {
         printf("뷰어 생성 실패\n");
         return -1;

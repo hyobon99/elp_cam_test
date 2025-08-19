@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 
 // 전역 변수
-LinuxSDKViewer *g_viewer = NULL;
+RaspberryPiViewer *g_viewer = NULL;
 volatile int g_running = 1;
 
 // 유틸리티 함수
@@ -22,8 +22,8 @@ int errnoexit(const char *s) {
     return -1;
 }
 
-// LinuxSDKViewer 생성자
-LinuxSDKViewer::LinuxSDKViewer() {
+// RaspberryPiViewer 생성자
+RaspberryPiViewer::RaspberryPiViewer() {
     vd = NULL;
     display = NULL;
     window = 0;
@@ -49,24 +49,24 @@ LinuxSDKViewer::LinuxSDKViewer() {
     pthread_mutex_init(&frame_mutex, NULL);
 }
 
-// LinuxSDKViewer 소멸자
-LinuxSDKViewer::~LinuxSDKViewer() {
+// RaspberryPiViewer 소멸자
+RaspberryPiViewer::~RaspberryPiViewer() {
     cleanup();
     pthread_mutex_destroy(&frame_mutex);
 }
 
 // 초기화
-int LinuxSDKViewer::initialize(const CameraConfig *cfg) {
+int RaspberryPiViewer::initialize(const CameraConfig *cfg) {
     if (!cfg) return -1;
     
     memcpy(&config, cfg, sizeof(CameraConfig));
     
-    printf("=== Linux SDK Viewer 초기화 ===\n");
+    printf("=== Raspberry Pi SDK Viewer 초기화 ===\n");
     printf("장치: %s\n", config.device_name);
     printf("해상도: %dx%d\n", config.width, config.height);
     printf("FPS: %d\n", config.fps);
     printf("포맷: 0x%08X\n", config.format);
-    printf("==============================\n");
+    printf("=====================================\n");
     
     // 카메라 열기
     if (openCamera(config.device_name) < 0) {
@@ -108,7 +108,7 @@ int LinuxSDKViewer::initialize(const CameraConfig *cfg) {
 }
 
 // 카메라 열기
-int LinuxSDKViewer::openCamera(const char *device) {
+int RaspberryPiViewer::openCamera(const char *device) {
     struct stat st;
     
     if (-1 == stat(device, &st)) {
@@ -138,7 +138,7 @@ int LinuxSDKViewer::openCamera(const char *device) {
 }
 
 // 포맷 설정
-int LinuxSDKViewer::setFormat(int width, int height, int fps) {
+int RaspberryPiViewer::setFormat(int width, int height, int fps) {
     if (!vd) return -1;
     
     printf("포맷 설정: %dx%d @ %dfps\n", width, height, fps);
@@ -182,7 +182,7 @@ int LinuxSDKViewer::setFormat(int width, int height, int fps) {
 }
 
 // H.264 파라미터 설정
-int LinuxSDKViewer::setH264Parameters(int bitrate, int quality, int keyframe_interval) {
+int RaspberryPiViewer::setH264Parameters(int bitrate, int quality, int keyframe_interval) {
     if (!vd) return -1;
     
     printf("H.264 파라미터 설정: bitrate=%d, quality=%d, keyframe=%d\n", 
@@ -195,7 +195,7 @@ int LinuxSDKViewer::setH264Parameters(int bitrate, int quality, int keyframe_int
 }
 
 // FPS 설정
-int LinuxSDKViewer::setTargetFPS(int fps) {
+int RaspberryPiViewer::setTargetFPS(int fps) {
     if (fps < MIN_FPS || fps > MAX_FPS) return -1;
     
     fps_ctrl.target_fps = fps;
@@ -207,12 +207,12 @@ int LinuxSDKViewer::setTargetFPS(int fps) {
 }
 
 // 현재 FPS 조회
-int LinuxSDKViewer::getCurrentFPS() {
+int RaspberryPiViewer::getCurrentFPS() {
     return (int)stats.current_fps;
 }
 
 // FPS 제어 업데이트
-void LinuxSDKViewer::updateFPSControl() {
+void RaspberryPiViewer::updateFPSControl() {
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     
@@ -240,7 +240,7 @@ void LinuxSDKViewer::updateFPSControl() {
 }
 
 // 다음 프레임까지 대기
-void LinuxSDKViewer::waitForNextFrame() {
+void RaspberryPiViewer::waitForNextFrame() {
     struct timespec now, target;
     clock_gettime(CLOCK_MONOTONIC, &now);
     
@@ -272,7 +272,7 @@ void LinuxSDKViewer::waitForNextFrame() {
 }
 
 // 스트리밍 시작
-int LinuxSDKViewer::startStreaming() {
+int RaspberryPiViewer::startStreaming() {
     if (running) return 0;
     
     printf("스트리밍 시작...\n");
@@ -327,7 +327,7 @@ int LinuxSDKViewer::startStreaming() {
 }
 
 // 스트리밍 정지
-int LinuxSDKViewer::stopStreaming() {
+int RaspberryPiViewer::stopStreaming() {
     if (!running) return 0;
     
     printf("스트리밍 정지...\n");
@@ -353,7 +353,7 @@ int LinuxSDKViewer::stopStreaming() {
 }
 
 // 프레임 캡처
-int LinuxSDKViewer::captureFrame() {
+int RaspberryPiViewer::captureFrame() {
     if (!running) return -1;
     
     struct v4l2_buffer buf;
@@ -398,7 +398,7 @@ int LinuxSDKViewer::captureFrame() {
 }
 
 // H.264 프레임 디코딩
-int LinuxSDKViewer::decodeH264Frame(unsigned char *data, int size) {
+int RaspberryPiViewer::decodeH264Frame(unsigned char *data, int size) {
     // 실제 구현에서는 FFmpeg 라이브러리나 하드웨어 디코더 사용
     // 여기서는 간단한 예시만 제공
     
@@ -411,7 +411,7 @@ int LinuxSDKViewer::decodeH264Frame(unsigned char *data, int size) {
 }
 
 // X11 디스플레이 초기화
-int LinuxSDKViewer::initializeX11Display() {
+int RaspberryPiViewer::initializeX11Display() {
     display = XOpenDisplay(NULL);
     if (!display) {
         printf("X11 디스플레이 열기 실패\n");
@@ -423,7 +423,7 @@ int LinuxSDKViewer::initializeX11Display() {
 }
 
 // 윈도우 생성
-int LinuxSDKViewer::createWindow(int width, int height) {
+int RaspberryPiViewer::createWindow(int width, int height) {
     if (!display) return -1;
     
     int screen = DefaultScreen(display);
@@ -435,7 +435,7 @@ int LinuxSDKViewer::createWindow(int width, int height) {
                                 WhitePixel(display, screen));
     
     // 윈도우 제목 설정
-    XStoreName(display, window, "Linux SDK Viewer");
+    XStoreName(display, window, "Raspberry Pi SDK Viewer");
     
     // 이벤트 마스크 설정
     XSelectInput(display, window, ExposureMask | KeyPressMask);
@@ -452,7 +452,7 @@ int LinuxSDKViewer::createWindow(int width, int height) {
 }
 
 // 디스플레이 업데이트
-void LinuxSDKViewer::updateDisplay() {
+void RaspberryPiViewer::updateDisplay() {
     if (!display || !window) return;
     
     // X11 이벤트 처리
@@ -479,12 +479,12 @@ void LinuxSDKViewer::updateDisplay() {
 }
 
 // 오버레이 그리기
-void LinuxSDKViewer::drawOverlay() {
+void RaspberryPiViewer::drawOverlay() {
     if (!display || !window || !gc) return;
     
     char info_text[256];
     snprintf(info_text, sizeof(info_text), 
-             "FPS: %.1f (Target: %d) | Frames: %lu | Size: %dx%d",
+             "FPS: %.1f (Target: %d) | Frames: %lu | Size: %dx%d | Platform: Raspberry Pi",
              stats.current_fps, fps_ctrl.target_fps, 
              stats.total_frames, frame_width, frame_height);
     
@@ -493,23 +493,24 @@ void LinuxSDKViewer::drawOverlay() {
 }
 
 // 통계 업데이트
-void LinuxSDKViewer::updateStatistics() {
+void RaspberryPiViewer::updateStatistics() {
     updateFPSControl();
 }
 
 // 통계 출력
-void LinuxSDKViewer::printStatistics() {
+void RaspberryPiViewer::printStatistics() {
     printf("\n=== 세션 통계 ===\n");
     printf("총 프레임: %lu\n", stats.total_frames);
     printf("드롭된 프레임: %lu\n", stats.dropped_frames);
     printf("평균 FPS: %.2f\n", stats.avg_fps);
     printf("현재 FPS: %.2f\n", stats.current_fps);
     printf("목표 FPS: %d\n", fps_ctrl.target_fps);
+    printf("플랫폼: Raspberry Pi\n");
     printf("================\n");
 }
 
 // 통계 리셋
-void LinuxSDKViewer::resetStatistics() {
+void RaspberryPiViewer::resetStatistics() {
     memset(&stats, 0, sizeof(stats));
     fps_ctrl.frame_count = 0;
     clock_gettime(CLOCK_MONOTONIC, &stats.session_start);
@@ -518,7 +519,7 @@ void LinuxSDKViewer::resetStatistics() {
 }
 
 // 정리
-void LinuxSDKViewer::cleanup() {
+void RaspberryPiViewer::cleanup() {
     stopStreaming();
     
     if (vd) {
@@ -549,7 +550,7 @@ void LinuxSDKViewer::cleanup() {
 }
 
 // 시그널 핸들러
-void LinuxSDKViewer::signalHandler(int sig) {
+void RaspberryPiViewer::signalHandler(int sig) {
     printf("\n시그널 %d 수신, 종료 중...\n", sig);
     g_running = 0;
 }
@@ -567,6 +568,8 @@ void printUsage(const char *program_name) {
     printf("  -F <format>     포맷 (0x00000021=H.264, 0x47504A4D=MJPEG)\n");
     printf("  -v              상세 출력\n");
     printf("  -?              이 도움말\n");
+    printf("\n");
+    printf("플랫폼: Raspberry Pi 전용\n");
 }
 
 // 명령행 파싱
