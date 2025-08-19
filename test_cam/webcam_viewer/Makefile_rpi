@@ -1,0 +1,51 @@
+# Raspberry Pi OpenCV 웹캠 뷰어 Makefile
+
+# 라즈베리파이용 OpenCV 설정
+PKG_OPENCV_CFLAGS := $(shell pkg-config --cflags opencv4 2>/dev/null || pkg-config --cflags opencv 2>/dev/null)
+PKG_OPENCV_LIBS := $(shell pkg-config --libs opencv4 2>/dev/null || pkg-config --libs opencv 2>/dev/null)
+
+# 라즈베리파이 최적화 플래그
+CXX = g++
+CXXFLAGS = -O2 -std=c++11 -march=native -mtune=cortex-a76 $(PKG_OPENCV_CFLAGS)
+LDFLAGS = $(PKG_OPENCV_LIBS)
+
+# 타겟 설정
+TARGET = webcam_viewer_rpi
+SOURCE = opencv_viewer_rpi.cpp
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCE)
+	$(CXX) $(CXXFLAGS) $(SOURCE) -o $(TARGET) $(LDFLAGS)
+
+# 디버그 빌드
+debug: CXXFLAGS += -g -DDEBUG
+debug: $(TARGET)
+
+# 릴리즈 빌드 (최적화)
+release: CXXFLAGS += -DNDEBUG
+release: $(TARGET)
+
+clean:
+	rm -f $(TARGET)
+	rm -f rpi_frame_*.jpg
+
+install: $(TARGET)
+	sudo cp $(TARGET) /usr/local/bin/
+
+uninstall:
+	sudo rm -f /usr/local/bin/$(TARGET)
+
+# 라즈베리파이에서 필요한 패키지 설치
+install-deps:
+	sudo apt update
+	sudo apt install -y libopencv-dev pkg-config build-essential
+
+# OpenCV 버전 확인
+check-opencv:
+	@echo "Checking OpenCV installation..."
+	@pkg-config --cflags opencv4 2>/dev/null && echo "OpenCV4 found" || \
+	 pkg-config --cflags opencv 2>/dev/null && echo "OpenCV found" || \
+	 echo "OpenCV not found. Run 'make install-deps' to install."
+
+.PHONY: all debug release clean install uninstall install-deps check-opencv
