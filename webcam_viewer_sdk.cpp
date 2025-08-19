@@ -252,11 +252,17 @@ int main(int argc, char** argv) {
 
     signal(SIGINT, handle_sigint);
 
-    // 라즈베리파이 환경 설정
+    // 라즈베리파이 환경 설정 - GUI 모드 강제 활성화
     #ifdef RASPBERRY_PI
-    // X11 디스플레이 오류 방지
-    setenv("QT_QPA_PLATFORM", "offscreen", 1);
+    // X11 디스플레이 설정
     setenv("DISPLAY", ":0", 1);
+    setenv("QT_QPA_PLATFORM", "xcb", 1);
+    setenv("OPENCV_VIDEOIO_PRIORITY_MSMF", "0", 1);
+    setenv("OPENCV_VIDEOIO_DEBUG", "1", 1);
+    
+    // X11 서버 연결 확인
+    std::cout << "X11 디스플레이 설정: " << getenv("DISPLAY") << std::endl;
+    std::cout << "QT 플랫폼: " << getenv("QT_QPA_PLATFORM") << std::endl;
     #endif
 
     // OpenCV SDK 컨트롤러 초기화
@@ -291,14 +297,10 @@ int main(int argc, char** argv) {
     std::cout << "  'm' - Reset FPS monitor" << std::endl;
     std::cout << std::endl;
 
-    // 라즈베리파이에서는 GUI 없이 콘솔 모드로 실행
-    #ifdef RASPBERRY_PI
-    std::cout << "라즈베리파이 모드: GUI 없이 콘솔에서 실행됩니다." << std::endl;
-    std::cout << "프레임 정보가 콘솔에 출력됩니다." << std::endl;
-    #else
-    // 윈도우 생성 (데스크톱 환경에서만)
+    // GUI 모드로 실행 (라즈베리파이 포함)
+    std::cout << "GUI 모드로 실행됩니다." << std::endl;
     cv::namedWindow("OpenCV SDK Style Viewer", cv::WINDOW_AUTOSIZE);
-    #endif
+    std::cout << "윈도우가 생성되었습니다." << std::endl;
 
     FPSMonitor monitor;
     bool show_info = true;
@@ -314,7 +316,7 @@ int main(int argc, char** argv) {
 
         monitor.update();
 
-        // 정보 표시
+        // 정보 표시 (GUI 모드)
         if (show_info) {
             std::string info_text = "Frame: " + std::to_string(monitor.getFrameCount()) +
                                    ", FPS: " + std::to_string(static_cast<int>(monitor.getFPS())) +
@@ -322,28 +324,19 @@ int main(int argc, char** argv) {
                                    ", KF: " + std::to_string(controller.getKeyFrameRate()) +
                                    ", Size: " + std::to_string(frame.cols) + "x" + std::to_string(frame.rows);
 
-            #ifdef RASPBERRY_PI
-            // 라즈베리파이에서는 콘솔에 출력
-            std::cout << "\r" << info_text << std::flush;
-            #else
-            // 데스크톱에서는 화면에 표시
+            // 화면에 텍스트 표시
             cv::putText(frame, info_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
-            #endif
+            
+            // 추가 정보 표시
+            std::string platform_info = "Platform: Raspberry Pi";
+            cv::putText(frame, platform_info, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 0), 2);
         }
 
-        #ifndef RASPBERRY_PI
-        // 화면에 표시 (데스크톱 환경에서만)
+        // 화면에 표시 (GUI 모드)
         cv::imshow("OpenCV SDK Style Viewer", frame);
-        #endif
 
-        // 키 입력 처리
-        #ifndef RASPBERRY_PI
+        // 키 입력 처리 (GUI 모드)
         int key = cv::waitKey(frame_interval);
-        #else
-        // 라즈베리파이에서는 키 입력을 기다리지 않고 계속 실행
-        int key = -1;
-        std::this_thread::sleep_for(std::chrono::milliseconds(frame_interval));
-        #endif
 
         if (key == 'q' || key == 'Q') {
             break;
@@ -390,11 +383,10 @@ int main(int argc, char** argv) {
         }
     }
 
-    // 정리
+    // 정리 (GUI 모드)
     controller.release();
-    #ifndef RASPBERRY_PI
     cv::destroyAllWindows();
-    #endif
+    std::cout << "GUI 윈도우가 종료되었습니다." << std::endl;
 
     std::cout << std::endl;
     std::cout << "=== Session Summary ===" << std::endl;
