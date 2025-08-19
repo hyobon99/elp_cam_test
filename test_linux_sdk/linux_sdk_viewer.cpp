@@ -369,6 +369,8 @@ int RaspberryPiViewer::captureFrame() {
         return -1;
     }
     
+    printf("프레임 캡처: %d bytes, 포맷: 0x%08X\n", buf.bytesused, config.format);
+    
     // 프레임 데이터 처리
     pthread_mutex_lock(&frame_mutex);
     
@@ -380,8 +382,10 @@ int RaspberryPiViewer::captureFrame() {
         if (frame_buffer_size < buf.bytesused) {
             frame_buffer = (unsigned char*)realloc(frame_buffer, buf.bytesused);
             frame_buffer_size = buf.bytesused;
+            printf("프레임 버퍼 크기 조정: %d bytes\n", frame_buffer_size);
         }
         memcpy(frame_buffer, vd->mem[buf.index], buf.bytesused);
+        printf("프레임 데이터 복사 완료: %d bytes\n", buf.bytesused);
     }
     
     pthread_mutex_unlock(&frame_mutex);
@@ -470,10 +474,134 @@ void RaspberryPiViewer::updateDisplay() {
         }
     }
     
+    // 프레임 데이터가 있으면 화면에 그리기
+    pthread_mutex_lock(&frame_mutex);
+    if (frame_buffer && frame_buffer_size > 0) {
+        drawFrame();
+    }
+    pthread_mutex_unlock(&frame_mutex);
+    
     // 오버레이 그리기
     drawOverlay();
     
     XFlush(display);
+}
+
+// 프레임 그리기
+void RaspberryPiViewer::drawFrame() {
+    if (!display || !window || !gc || !frame_buffer) return;
+    
+    // 윈도우 크기 가져오기
+    XWindowAttributes attr;
+    XGetWindowAttributes(display, window, &attr);
+    
+    // 이미지 데이터를 X11 이미지로 변환
+    if (config.format == V4L2_PIX_FMT_MJPEG) {
+        // MJPEG는 JPEG 디코딩 필요 (간단한 예시)
+        drawRawFrame();
+    } else if (config.format == V4L2_PIX_FMT_YUYV) {
+        // YUYV를 RGB로 변환하여 그리기
+        drawYUYVFrame();
+    } else {
+        // 기타 포맷은 원시 데이터로 그리기
+        drawRawFrame();
+    }
+}
+
+// 원시 프레임 그리기 (간단한 버전)
+void RaspberryPiViewer::drawRawFrame() {
+    if (!display || !window || !gc || !frame_buffer) return;
+    
+    // 윈도우 크기 가져오기
+    XWindowAttributes attr;
+    XGetWindowAttributes(display, window, &attr);
+    
+    // 간단한 테스트 패턴 그리기 (실제 이미지 대신)
+    XSetForeground(display, gc, 0x0000FF);  // 파란색
+    XFillRectangle(display, window, gc, 0, 0, attr.width, attr.height);
+    
+    // 프레임 정보 표시
+    char frame_info[128];
+    snprintf(frame_info, sizeof(frame_info), "Frame: %d bytes", frame_buffer_size);
+    XSetForeground(display, gc, 0xFFFFFF);  // 흰색
+    XDrawString(display, window, gc, 10, 50, frame_info, strlen(frame_info));
+}
+
+// YUYV 프레임 그리기
+void RaspberryPiViewer::drawYUYVFrame() {
+    if (!display || !window || !gc || !frame_buffer) return;
+    
+    // 윈도우 크기 가져오기
+    XWindowAttributes attr;
+    XGetWindowAttributes(display, window, &attr);
+    
+    // YUYV를 RGB로 변환 (간단한 구현)
+    int width = config.width;
+    int height = config.height;
+    
+    // XImage 생성
+    XImage *image = XCreateImage(display, DefaultVisual(display, DefaultScreen(display)),
+                                24, ZPixmap, 0, NULL, width, height, 32, 0);
+    
+    if (!image) {
+        printf("XImage 생성 실패\n");
+        return;
+    }
+    
+    // 메모리 할당
+    image->data = (char*)malloc(width * height * 4);
+    if (!image->data) {
+        XDestroyImage(image);
+        printf("이미지 메모리 할당 실패\n");
+        return;
+    }
+    
+    // YUYV를 RGB로 변환
+    unsigned char *yuyv = frame_buffer;
+    unsigned char *rgb = (unsigned char*)image->data;
+    
+    for (int i = 0; i < width * height / 2; i++) {
+        int y0 = yuyv[i*4 + 0];
+        int u  = yuyv[i*4 + 1];
+        int y1 = yuyv[i*4 + 2];
+        int v  = yuyv[i*4 + 3];
+        
+        // YUV to RGB 변환 (간단한 버전)
+        int r0 = y0 + 1.402 * (v - 128);
+        int g0 = y0 - 0.344 * (u - 128) - 0.714 * (v - 128);
+        int b0 = y0 + 1.772 * (u - 128);
+        
+        int r1 = y1 + 1.402 * (v - 128);
+        int g1 = y1 - 0.344 * (u - 128) - 0.714 * (v - 128);
+        int b1 = y1 + 1.772 * (u - 128);
+        
+        // 클램핑
+        r0 = (r0 < 0) ? 0 : (r0 > 255) ? 255 : r0;
+        g0 = (g0 < 0) ? 0 : (g0 > 255) ? 255 : g0;
+        b0 = (b0 < 0) ? 0 : (b0 > 255) ? 255 : b0;
+        
+        r1 = (r1 < 0) ? 0 : (r1 > 255) ? 255 : r1;
+        g1 = (g1 < 0) ? 0 : (g1 > 255) ? 255 : g1;
+        b1 = (b1 < 0) ? 0 : (b1 > 255) ? 255 : b1;
+        
+        // RGB 저장
+        rgb[i*8 + 0] = r0;  // B
+        rgb[i*8 + 1] = g0;  // G
+        rgb[i*8 + 2] = b0;  // R
+        rgb[i*8 + 3] = 0;   // A
+        
+        rgb[i*8 + 4] = r1;  // B
+        rgb[i*8 + 5] = g1;  // G
+        rgb[i*8 + 6] = b1;  // R
+        rgb[i*8 + 7] = 0;   // A
+    }
+    
+    // 이미지를 윈도우에 그리기
+    XPutImage(display, window, gc, image, 0, 0, 0, 0, width, height);
+    
+    // 정리
+    free(image->data);
+    XDestroyImage(image);
 }
 
 // 오버레이 그리기
@@ -487,6 +615,7 @@ void RaspberryPiViewer::drawOverlay() {
              stats.total_frames, frame_width, frame_height);
     
     // 텍스트 그리기
+    XSetForeground(display, gc, 0xFFFFFF);  // 흰색
     XDrawString(display, window, gc, 10, 20, info_text, strlen(info_text));
 }
 
