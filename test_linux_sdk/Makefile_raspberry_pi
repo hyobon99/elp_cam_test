@@ -1,0 +1,127 @@
+# Raspberry Pi SDK Viewer Makefile
+# ELP H.264 USB Camera SDK 기반 - 라즈베리파이 전용
+
+# 컴파일러 및 플래그
+CC = gcc
+CXX = g++
+CFLAGS = -Wall -Wextra -O2 -g -DRASPBERRY_PI_ONLY
+CXXFLAGS = $(CFLAGS) -std=c++11
+
+# 라이브러리
+LIBS = -lpthread -lX11 -lm
+
+# Linux SDK 헤더 경로 (로컬)
+SDK_PATH = ./sdk_deps
+SDK_INCLUDE = -I$(SDK_PATH)/OSD-Linux_H264_AP_0724
+
+# 소스 파일들
+SOURCES = main_linux_sdk.cpp linux_sdk_viewer.cpp
+SDK_SOURCES = $(SDK_PATH)/OSD-Linux_H264_AP_0724/h264_xu_ctrls.c \
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/v4l2uvc.c \
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/nalu.c \
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/cap_desc.c \
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/cap_desc_parser.c \
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/sdk_definitions.c
+
+# 오브젝트 파일들
+OBJECTS = $(SOURCES:.cpp=.o) $(SDK_SOURCES:.c=.o)
+
+# 타겟
+TARGET = raspberry_pi_viewer
+
+# 기본 타겟
+all: $(TARGET)
+
+# 메인 타겟 빌드
+$(TARGET): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
+	@echo "빌드 완료: $(TARGET) (Raspberry Pi 전용)"
+
+# C++ 소스 컴파일
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(SDK_INCLUDE) -c $< -o $@
+
+# C 소스 컴파일 (SDK 파일들)
+%.o: %.c
+	$(CC) $(CFLAGS) $(SDK_INCLUDE) -c $< -o $@
+
+# 정리
+clean:
+	rm -f $(OBJECTS) $(TARGET)
+	@echo "정리 완료"
+
+# 설치 (선택적)
+install: $(TARGET)
+	sudo cp $(TARGET) /usr/local/bin/
+	@echo "설치 완료: /usr/local/bin/$(TARGET)"
+
+# 제거
+uninstall:
+	sudo rm -f /usr/local/bin/$(TARGET)
+	@echo "제거 완료"
+
+# 플랫폼 정보
+info:
+	@echo "=== Raspberry Pi SDK Viewer ==="
+	@echo "플랫폼: Raspberry Pi 전용"
+	@echo "C++ Compiler: $(CXX)"
+	@echo "C Compiler: $(CC)"
+	@echo "Libraries: $(LIBS)"
+	@echo "SDK Path: $(SDK_PATH)"
+
+# 의존성 체크
+check-deps:
+	@echo "=== 의존성 체크 ==="
+	@which $(CC) > /dev/null && echo "✓ GCC 설치됨" || echo "✗ GCC 필요"
+	@which $(CXX) > /dev/null && echo "✓ G++ 설치됨" || echo "✗ G++ 필요"
+	@pkg-config --exists x11 && echo "✓ X11 개발 라이브러리 설치됨" || echo "✗ X11 개발 라이브러리 필요"
+	@echo "=================="
+
+# SDK 경로 체크
+check-sdk:
+	@echo "=== SDK 경로 체크 ==="
+	@if [ -d "$(SDK_PATH)" ]; then \
+		echo "✓ SDK 경로 발견: $(SDK_PATH)"; \
+		ls -la "$(SDK_PATH)"; \
+		echo ""; \
+		echo "H.264 SDK 파일들:"; \
+		ls -la "$(SDK_PATH)/OSD-Linux_H264_AP_0724/"; \
+		echo ""; \
+		echo "모션 감지 SDK 파일들:"; \
+		ls -la "$(SDK_PATH)/UCAM-Motion_detection/"; \
+	else \
+		echo "✗ SDK 경로 없음: $(SDK_PATH)"; \
+		echo "SDK_PATH 변수를 올바른 경로로 수정하세요"; \
+	fi
+	@echo "===================="
+
+# 전체 체크
+check: check-deps check-sdk
+	@echo "=== 전체 체크 완료 ==="
+
+# 도움말
+help:
+	@echo "=== Raspberry Pi SDK Viewer ==="
+	@echo "make all        - 빌드"
+	@echo "make clean      - 정리"
+	@echo "make install    - 시스템 설치"
+	@echo "make uninstall  - 시스템 제거"
+	@echo "make info       - 플랫폼 정보"
+	@echo "make check      - 의존성 및 SDK 체크"
+	@echo "make help       - 이 도움말"
+	@echo ""
+	@echo "=== 사용법 ==="
+	@echo "./$(TARGET) [옵션]"
+	@echo "  -d <device>   카메라 장치 (기본: /dev/video0)"
+	@echo "  -w <width>    해상도 너비 (기본: 640)"
+	@echo "  -h <height>   해상도 높이 (기본: 480)"
+	@echo "  -f <fps>      FPS (기본: 30)"
+	@echo "  -b <bitrate>  비트레이트 (H.264용)"
+	@echo "  -q <quality>  품질 (H.264용)"
+	@echo "  -F <format>   포맷 (0x00000021=H.264, 0x47504A4D=MJPEG)"
+	@echo ""
+	@echo "=== 예시 ==="
+	@echo "./$(TARGET) -d /dev/video0 -w 1280 -h 720 -f 30"
+	@echo "./$(TARGET) -d /dev/video0 -w 1920 -h 1080 -f 60 -F 0x00000021"
+
+.PHONY: all clean install uninstall info check-deps check-sdk check help
