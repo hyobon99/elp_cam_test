@@ -21,20 +21,14 @@ public:
     OpenCVSDKController() : current_fps(30), current_width(640), current_height(480), keyframe_rate(30) {}
 
     bool openCamera(int device_id = 0) {
-        // 라즈베리파이에서는 여러 카메라 장치를 시도
-        std::vector<int> devices = {0, 1, 2, 10, 11, 12}; // 일반적인 USB 카메라 장치들
-        
-        for (int dev : devices) {
-            std::cout << "카메라 장치 " << dev << " 시도 중..." << std::endl;
-            cap.open(dev);
-            if (cap.isOpened()) {
-                std::cout << "카메라 장치 " << dev << " 성공적으로 열림!" << std::endl;
-                return true;
-            }
+        // reference.cpp와 동일한 방식으로 카메라 열기
+        cap.open(device_id);
+        if (!cap.isOpened()) {
+            std::cout << "Error: Could not open camera device " << device_id << std::endl;
+            return false;
         }
-        
-        std::cout << "Error: 사용 가능한 카메라 장치를 찾을 수 없습니다" << std::endl;
-        return false;
+        std::cout << "카메라 장치 " << device_id << " 성공적으로 열림!" << std::endl;
+        return true;
     }
 
     bool setFormat(int width, int height, int fps) {
@@ -70,7 +64,8 @@ public:
     }
 
     bool readFrame(cv::Mat& frame) {
-        return cap.read(frame);
+        cap >> frame;
+        return !frame.empty();
     }
 
     void release() {
@@ -265,12 +260,11 @@ int main(int argc, char** argv) {
     int frame_interval = 1000 / fps; // ms 단위
 
     while (keep_running) {
-        // 프레임 읽기
+        // 프레임 읽기 (reference.cpp와 동일한 방식)
         cv::Mat frame;
         if (!controller.readFrame(frame)) {
             std::cout << "Error: Could not read frame" << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            continue;
+            break;
         }
 
         monitor.update();
