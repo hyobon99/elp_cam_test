@@ -20,7 +20,8 @@ SDK_SOURCES = $(SDK_PATH)/OSD-Linux_H264_AP_0724/h264_xu_ctrls.c \
               $(SDK_PATH)/OSD-Linux_H264_AP_0724/v4l2uvc.c \
               $(SDK_PATH)/OSD-Linux_H264_AP_0724/nalu.c \
               $(SDK_PATH)/OSD-Linux_H264_AP_0724/cap_desc.c \
-              $(SDK_PATH)/OSD-Linux_H264_AP_0724/cap_desc_parser.c
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/cap_desc_parser.c \
+              $(SDK_PATH)/OSD-Linux_H264_AP_0724/sdk_definitions.c
 
 # 오브젝트 파일들
 OBJECTS = $(SOURCES:.cpp=.o) $(SDK_SOURCES:.c=.o)

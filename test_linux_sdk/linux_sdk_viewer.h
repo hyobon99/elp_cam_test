@@ -24,10 +24,16 @@
 #include <math.h>
 
 // 라즈베리파이 전용 설정
+#ifndef PLATFORM_RASPBERRY_PI
 #define PLATFORM_RASPBERRY_PI
+#endif
+
+#ifndef RASPBERRY_PI_ONLY
 #define RASPBERRY_PI_ONLY
+#endif
 
 // Linux SDK 헤더들
+#include "sdk_deps/OSD-Linux_H264_AP_0724/sdk_definitions.h"
 #include "sdk_deps/OSD-Linux_H264_AP_0724/v4l2uvc.h"
 #include "sdk_deps/OSD-Linux_H264_AP_0724/h264_xu_ctrls.h"
 
@@ -149,7 +155,7 @@ public:
     void cleanup();
 };
 
-// 전역 변수
+// 전역 변수 선언
 extern RaspberryPiViewer *g_viewer;
 extern volatile int g_running;
 

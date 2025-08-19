@@ -4,9 +4,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-// 전역 변수
-RaspberryPiViewer *g_viewer = NULL;
-volatile int g_running = 1;
+// 전역 변수 (extern으로 선언만)
 
 // 유틸리티 함수
 int xioctl(int fd, int request, void *arg) {
