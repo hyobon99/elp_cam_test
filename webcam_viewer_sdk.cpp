@@ -21,28 +21,45 @@ public:
     OpenCVSDKController() : current_fps(30), current_width(640), current_height(480), keyframe_rate(30) {}
 
     bool openCamera(int device_id = 0) {
-        // reference.cpp와 동일한 방식으로 카메라 열기
-        std::cout << "카메라 장치 " << device_id << " 열기 시도 중..." << std::endl;
-        cap.open(device_id);
-        if (!cap.isOpened()) {
-            std::cout << "Error: Could not open camera device " << device_id << std::endl;
-            return false;
+        // 라즈베리파이에서 실제 카메라 장치 찾기
+        std::vector<int> camera_devices = {0, 1, 2, 8, 9}; // 실제 카메라 장치들
+        
+        for (int dev : camera_devices) {
+            std::cout << "카메라 장치 " << dev << " 열기 시도 중..." << std::endl;
+            cap.open(dev);
+            if (cap.isOpened()) {
+                // 실제 카메라인지 확인 (해상도가 0이 아닌 경우)
+                double width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+                double height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+                
+                if (width > 0 && height > 0) {
+                    std::cout << "카메라 장치 " << dev << " 성공적으로 열림!" << std::endl;
+                    std::cout << "카메라 정보:" << std::endl;
+                    std::cout << "  Width: " << width << std::endl;
+                    std::cout << "  Height: " << height << std::endl;
+                    std::cout << "  FPS: " << cap.get(cv::CAP_PROP_FPS) << std::endl;
+                    std::cout << "  Backend: " << cap.get(cv::CAP_PROP_BACKEND) << std::endl;
+                    return true;
+                } else {
+                    std::cout << "장치 " << dev << "는 실제 카메라가 아닙니다 (해상도: " << width << "x" << height << ")" << std::endl;
+                    cap.release();
+                }
+            }
         }
-        std::cout << "카메라 장치 " << device_id << " 성공적으로 열림!" << std::endl;
         
-        // 카메라 정보 출력
-        std::cout << "카메라 정보:" << std::endl;
-        std::cout << "  Width: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << std::endl;
-        std::cout << "  Height: " << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
-        std::cout << "  FPS: " << cap.get(cv::CAP_PROP_FPS) << std::endl;
-        std::cout << "  Backend: " << cap.get(cv::CAP_PROP_BACKEND) << std::endl;
-        
-        return true;
+        std::cout << "Error: 사용 가능한 실제 카메라 장치를 찾을 수 없습니다" << std::endl;
+        std::cout << "다음 명령어로 카메라 장치를 확인하세요:" << std::endl;
+        std::cout << "  v4l2-ctl --list-devices" << std::endl;
+        std::cout << "  v4l2-ctl -d /dev/video0 --list-formats-ext" << std::endl;
+        return false;
     }
 
     bool setFormat(int width, int height, int fps) {
         if (!cap.isOpened()) return false;
 
+        // 라즈베리파이에서는 설정을 단계별로 적용
+        std::cout << "카메라 포맷 설정 중..." << std::endl;
+        
         // 해상도 설정
         cap.set(cv::CAP_PROP_FRAME_WIDTH, width);
         cap.set(cv::CAP_PROP_FRAME_HEIGHT, height);
@@ -54,6 +71,12 @@ public:
         current_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
         current_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
         current_fps = cap.get(cv::CAP_PROP_FPS);
+
+        // 라즈베리파이에서는 FPS가 -1로 나올 수 있으므로 기본값 사용
+        if (current_fps <= 0) {
+            current_fps = fps;
+            std::cout << "Warning: FPS를 가져올 수 없어 기본값 " << fps << " 사용" << std::endl;
+        }
 
         std::cout << "Format set to: " << current_width << "x" << current_height 
                   << " @ " << current_fps << " fps" << std::endl;
@@ -79,7 +102,12 @@ public:
             std::cout << "  카메라 열림 상태: " << (cap.isOpened() ? "열림" : "닫힘") << std::endl;
             if (cap.isOpened()) {
                 std::cout << "  현재 해상도: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
-                std::cout << "  현재 FPS: " << cap.get(cv::CAP_PROP_FPS) << std::endl;
+                double fps = cap.get(cv::CAP_PROP_FPS);
+                if (fps <= 0) {
+                    std::cout << "  현재 FPS: 알 수 없음 (라즈베리파이 V4L2 제한)" << std::endl;
+                } else {
+                    std::cout << "  현재 FPS: " << fps << std::endl;
+                }
             }
         }
         return !frame.empty();
