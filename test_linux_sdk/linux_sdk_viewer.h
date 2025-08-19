@@ -137,6 +137,9 @@ public:
     int initializeX11Display();
     int createWindow(int width, int height);
     void updateDisplay();
+    void drawFrame();
+    void drawRawFrame();
+    void drawYUYVFrame();
     void drawOverlay();
     
     // 통계 및 모니터링
